@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bản đồ cao su</title>
+    <title>Bản đồ KCN Hiệp Thạnh</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -18,49 +18,39 @@
 <div id="map"></div>
 
 <script>
-    // ===== 1. KHỞI TẠO MAP =====
-    var map = L.map('map').setView([10.8, 106.7], 10);
 
+    // ===== 1. MAP =====
+    var map = L.map('map').setView([11.14, 106.23], 13);
+
+    // ===== 2. NỀN BẢN ĐỒ =====
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // ===== 2. LAYER CONTROL =====
+    // ===== 3. CONTROL =====
     var control = L.control.layers(null, null).addTo(map);
 
-    // ===== 3. STYLE THEO DIỆN TÍCH =====
-    function getColor(area) {
-        return area > 50 ? "#004d00" :
-               area > 20 ? "#1a8f1a" :
-               area > 5  ? "#66cc66" :
-                           "#ccffcc";
-    }
-
-    function styleFeature(feature) {
-        var area = feature.properties.area || 0;
-
-        return {
-            color: "green",
-            weight: 1,
-            fillOpacity: 0.5,
-            fillColor: getColor(area)
-        };
-    }
-
-    // ===== 4. LOAD CAO SU =====
+    // ===== 4. LỚP CAO SU (NỀN CHÍNH) =====
     fetch('caosu.geojson')
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
+    .then(res => res.json())
+    .then(data => {
 
         var caosu = L.geoJSON(data, {
-            style: styleFeature,
+
+            style: function(feature) {
+                return {
+                    color: "green",
+                    weight: 1,
+                    fillOpacity: 0.3
+                };
+            },
+
             onEachFeature: function (feature, layer) {
 
-                // Hover highlight
                 layer.on({
                     mouseover: function (e) {
                         e.target.setStyle({
-                            weight: 3,
+                            weight: 2,
                             color: "yellow"
                         });
                     },
@@ -69,44 +59,52 @@
                     }
                 });
 
-                // Popup
                 layer.bindPopup(
-                    "<b>Cao su</b><br>" +
-                    "Tên: " + (feature.properties.name || "Không có") +
-                    "<br>Diện tích: " + (feature.properties.area || "N/A") + " ha"
+                    "<b>Vườn cao su</b><br>" +
+                    "Diện tích: " + (feature.properties.area || "N/A") + " ha"
                 );
             }
+
         }).addTo(map);
 
         control.addOverlay(caosu, "Cao su");
 
-        // Zoom đúng vùng
         map.fitBounds(caosu.getBounds());
-    })
-    .catch(function(err){
-        console.log("Lỗi load cao su:", err);
     });
 
-    // ===== 5. LOAD QUY HOẠCH (nếu có) =====
-    fetch('quyhoach.geojson')
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
+    // ===== 5. LỚP DIỆN TÍCH KCN =====
+    fetch('kcnht.json')
+    .then(res => res.json())
+    .then(data => {
 
-        var quyhoach = L.geoJSON(data, {
+        var kcn = L.geoJSON(data, {
             style: {
-                color: "red",
-                weight: 2,
-                fillOpacity: 0.1
+                color: "orange",
+                weight: 1,
+                fillOpacity: 0.5
             },
             onEachFeature: function (feature, layer) {
-                layer.bindPopup("<b>Quy hoạch</b>");
+                layer.bindPopup("<b>KCN Hiệp Thạnh</b>");
             }
         });
 
-        control.addOverlay(quyhoach, "Quy hoạch");
-    })
-    .catch(function(err){
-        console.log("Không có quyhoach.geojson (bỏ qua)");
+        control.addOverlay(kcn, "Diện tích KCN");
+    });
+
+    // ===== 6. LỚP RANH KCN =====
+    fetch('ranhkcnht.json')
+    .then(res => res.json())
+    .then(data => {
+
+        var ranh = L.geoJSON(data, {
+            style: {
+                color: "red",
+                weight: 3,
+                fillOpacity: 0
+            }
+        });
+
+        control.addOverlay(ranh, "Ranh KCN");
     });
 
 </script>
