@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bản đồ cao su</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        html, body { height: 100%; margin: 0; }
+        #map { height: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script>
+    // ===== 1. KHỞI TẠO MAP =====
+    var map = L.map('map').setView([10.8, 106.7], 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // ===== 2. LAYER CONTROL =====
+    var control = L.control.layers(null, null).addTo(map);
+
+    // ===== 3. STYLE THEO DIỆN TÍCH =====
+    function getColor(area) {
+        return area > 50 ? "#004d00" :
+               area > 20 ? "#1a8f1a" :
+               area > 5  ? "#66cc66" :
+                           "#ccffcc";
+    }
+
+    function styleFeature(feature) {
+        var area = feature.properties.area || 0;
+
+        return {
+            color: "green",
+            weight: 1,
+            fillOpacity: 0.5,
+            fillColor: getColor(area)
+        };
+    }
+
+    // ===== 4. LOAD CAO SU =====
+    fetch('caosu.geojson')
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+
+        var caosu = L.geoJSON(data, {
+            style: styleFeature,
+            onEachFeature: function (feature, layer) {
+
+                // Hover highlight
+                layer.on({
+                    mouseover: function (e) {
+                        e.target.setStyle({
+                            weight: 3,
+                            color: "yellow"
+                        });
+                    },
+                    mouseout: function (e) {
+                        caosu.resetStyle(e.target);
+                    }
+                });
+
+                // Popup
+                layer.bindPopup(
+                    "<b>Cao su</b><br>" +
+                    "Tên: " + (feature.properties.name || "Không có") +
+                    "<br>Diện tích: " + (feature.properties.area || "N/A") + " ha"
+                );
+            }
+        }).addTo(map);
+
+        control.addOverlay(caosu, "Cao su");
+
+        // Zoom đúng vùng
+        map.fitBounds(caosu.getBounds());
+    })
+    .catch(function(err){
+        console.log("Lỗi load cao su:", err);
+    });
+
+    // ===== 5. LOAD QUY HOẠCH (nếu có) =====
+    fetch('quyhoach.geojson')
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+
+        var quyhoach = L.geoJSON(data, {
+            style: {
+                color: "red",
+                weight: 2,
+                fillOpacity: 0.1
+            },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup("<b>Quy hoạch</b>");
+            }
+        });
+
+        control.addOverlay(quyhoach, "Quy hoạch");
+    })
+    .catch(function(err){
+        console.log("Không có quyhoach.geojson (bỏ qua)");
+    });
+
+</script>
+
+</body>
+</html>
